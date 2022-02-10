@@ -102,6 +102,32 @@ bool tud_hid_n_report(uint8_t itf, uint8_t report_id, void const* report, uint8_
   return usbd_edpt_xfer(TUD_OPT_RHPORT, p_hid->ep_in, p_hid->epin_buf, len);
 }
 
+bool tud_hid_n_report_16(uint8_t itf, uint8_t report_id, void const* report, uint16_t len)
+{
+  uint8_t const rhport = 0;
+  hidd_interface_t * p_hid = &_hidd_itf[itf];
+
+  // claim endpoint
+  TU_VERIFY( usbd_edpt_claim(rhport, p_hid->ep_in) );
+
+  // prepare data
+  if (report_id)
+  {
+    len = tu_min16(len, CFG_TUD_HID_EP_BUFSIZE-1);
+
+    p_hid->epin_buf[0] = report_id;
+    memcpy(p_hid->epin_buf+1, report, len);
+    len++;
+  }else
+  {
+    // If report id = 0, skip ID field
+    len = tu_min16(len, CFG_TUD_HID_EP_BUFSIZE);
+    memcpy(p_hid->epin_buf, report, len);
+  }
+
+  return usbd_edpt_xfer(TUD_OPT_RHPORT, p_hid->ep_in, p_hid->epin_buf, len);
+}
+
 bool tud_hid_n_boot_mode(uint8_t itf)
 {
   return _hidd_itf[itf].boot_mode;
@@ -372,12 +398,13 @@ bool hidd_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result, uint32_
     {
       tud_hid_report_complete_cb(itf, p_hid->epin_buf, (uint8_t) xferred_bytes);
     }
+    //TU_ASSERT(usbd_edpt_xfer(rhport, p_hid->ep_out, p_hid->epout_buf, sizeof(p_hid->epout_buf)));
   }
   // Received report
   else if (ep_addr == p_hid->ep_out)
   {
     tud_hid_set_report_cb(itf, 0, HID_REPORT_TYPE_INVALID, p_hid->epout_buf, xferred_bytes);
-    TU_ASSERT(usbd_edpt_xfer(rhport, p_hid->ep_out, p_hid->epout_buf, sizeof(p_hid->epout_buf)));
+    TU_ASSERT(usbd_edpt_xfer(rhport, p_hid->ep_out, p_hid->epout_buf, sizeof(p_hid->epout_buf))); // change to sent report
   }
 
   return true;

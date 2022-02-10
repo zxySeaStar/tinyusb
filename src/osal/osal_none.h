@@ -186,7 +186,6 @@ static inline bool osal_queue_send(osal_queue_t qhdl, void const * data, bool in
   }
 
   TU_ASSERT(success);
-
   return success;
 }
 

@@ -573,7 +573,6 @@ static void transmit_packet(xfer_ctl_t *xfer, volatile usb_in_endpoint_t *in_ep,
 
   uint16_t remaining = (in_ep->dieptsiz & 0x7FFFFU) >> USB_D_XFERSIZE0_S;
   xfer->queued_len = xfer->total_len - remaining;
-
   uint16_t to_xfer_size = (remaining > xfer->max_size) ? xfer->max_size : remaining;
 
 #if 0 // TODO support dcd_edpt_xfer_fifo API
@@ -677,6 +676,7 @@ static void handle_epout_ints(void)
     xfer_ctl_t *xfer = XFER_CTL_BASE(n, TUSB_DIR_OUT);
 
     if (USB0.daint & (1 << (16 + n))) {
+     
       // SETUP packet Setup Phase done.
       if ((USB0.out_ep_reg[n].doepint & USB_SETUP0_M)) {
         USB0.out_ep_reg[n].doepint = USB_STUPPKTRCVD0_M | USB_SETUP0_M; // clear
@@ -725,7 +725,6 @@ static void handle_epin_ints(void)
         ESP_EARLY_LOGV(TAG, "TUSB IRQ - IN XFER FIFO empty!");
         USB0.in_ep_reg[n].diepint = USB_D_TXFEMP0_M;
         transmit_packet(xfer, &USB0.in_ep_reg[n], n);
-
         // Turn off TXFE if all bytes are written.
         if (xfer->queued_len == xfer->total_len)
         {

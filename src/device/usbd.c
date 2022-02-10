@@ -385,6 +385,7 @@ bool tud_init (void)
   // Get application driver if available
   if ( usbd_app_driver_get_cb )
   {
+    TU_LOG2("got callback\r\n");
     _app_driver = usbd_app_driver_get_cb(&_app_driver_count);
   }
 
@@ -454,7 +455,7 @@ void tud_task (void)
   {
     dcd_event_t event;
 
-    if ( !osal_queue_receive(_usbd_q, &event) ) return;
+   if ( !osal_queue_receive(_usbd_q, &event) ) return;
 
 #if CFG_TUSB_DEBUG >= 2
     if (event.event_id == DCD_EVENT_SETUP_RECEIVED) TU_LOG2("\r\n"); // extra line for setup
@@ -485,6 +486,7 @@ void tud_task (void)
         // But it is easier to set it every time instead of wasting time to check then set
         _usbd_dev.connected = 1;
 
+
         // mark both in & out control as free
         _usbd_dev.ep_status[0][TUSB_DIR_OUT].busy = false;
         _usbd_dev.ep_status[0][TUSB_DIR_OUT].claimed = 0;
@@ -513,18 +515,22 @@ void tud_task (void)
         _usbd_dev.ep_status[epnum][ep_dir].busy = false;
         _usbd_dev.ep_status[epnum][ep_dir].claimed = 0;
 
+        
         if ( 0 == epnum )
         {
           usbd_control_xfer_cb(event.rhport, ep_addr, (xfer_result_t)event.xfer_complete.result, event.xfer_complete.len);
         }
         else
         {
+          //printf("<B\n");
           usbd_class_driver_t const * driver = get_driver( _usbd_dev.ep2drv[epnum][ep_dir] );
           TU_ASSERT(driver, );
-
+          
           TU_LOG2("  %s xfer callback\r\n", driver->name);
-          driver->xfer_cb(event.rhport, ep_addr, (xfer_result_t)event.xfer_complete.result, event.xfer_complete.len);
+          driver->xfer_cb(event.rhport, ep_addr, (xfer_result_t)event.xfer_complete.result, event.xfer_complete.len);      
+          //printf("B>\n\n");
         }
+        
       }
       break;
 
@@ -595,7 +601,6 @@ static bool process_control_request(uint8_t rhport, tusb_control_request_t const
     if (TUSB_REQ_GET_DESCRIPTOR != p_request->bRequest) TU_LOG2("\r\n");
   }
 #endif
-
   switch ( p_request->bmRequestType_bit.recipient )
   {
     //------------- Device Requests e.g in enumeration -------------//
@@ -702,7 +707,6 @@ static bool process_control_request(uint8_t rhport, tusb_control_request_t const
         // For GET_INTERFACE and SET_INTERFACE, it is mandatory to respond even if the class
         // driver doesn't use alternate settings or implement this
         TU_VERIFY(TUSB_REQ_TYPE_STANDARD == p_request->bmRequestType_bit.type);
-
         if (TUSB_REQ_GET_INTERFACE == p_request->bRequest)
         {
           uint8_t alternate = 0;
@@ -1218,9 +1222,9 @@ bool usbd_edpt_xfer(uint8_t rhport, uint8_t ep_addr, uint8_t * buffer, uint16_t 
   uint8_t const dir   = tu_edpt_dir(ep_addr);
 
   TU_LOG2("  Queue EP %02X with %u bytes ... ", ep_addr, total_bytes);
-
   // Attempt to transfer on a busy endpoint, sound like an race condition !
   TU_ASSERT(_usbd_dev.ep_status[epnum][dir].busy == 0);
+  //printf("%d %d %d %d\n",_usbd_dev.ep_status[epnum][0].busy,_usbd_dev.ep_status[epnum][0].claimed,_usbd_dev.ep_status[epnum][1].busy,_usbd_dev.ep_status[epnum][1].claimed);
 
   // Set busy first since the actual transfer can be complete before dcd_edpt_xfer() could return
   // and usbd task can preempt and clear the busy

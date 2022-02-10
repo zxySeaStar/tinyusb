@@ -62,6 +62,8 @@ bool tud_hid_n_boot_mode(uint8_t itf);
 
 // Send report to host
 bool tud_hid_n_report(uint8_t itf, uint8_t report_id, void const* report, uint8_t len);
+bool tud_hid_n_report_16(uint8_t itf, uint8_t report_id, void const* report, uint16_t len);
+
 
 // KEYBOARD: convenient helper to send keyboard report if application
 // use template layout report as defined by hid_keyboard_report_t
@@ -131,6 +133,11 @@ static inline bool tud_hid_boot_mode(void)
 static inline bool tud_hid_report(uint8_t report_id, void const* report, uint8_t len)
 {
   return tud_hid_n_report(0, report_id, report, len);
+}
+
+static inline bool tud_hid_report_16(uint8_t report_id, void const* report, uint16_t len)
+{
+  return tud_hid_n_report_16(0, report_id, report, len);
 }
 
 static inline bool tud_hid_keyboard_report(uint8_t report_id, uint8_t modifier, uint8_t keycode[6])
@@ -352,14 +359,14 @@ static inline bool tud_hid_mouse_report(uint8_t report_id, uint8_t buttons, int8
       HID_LOGICAL_MIN ( 0x00                                   ),\
       HID_LOGICAL_MAX ( 0xff                                   ),\
       HID_REPORT_SIZE ( 8                                      ),\
-      HID_REPORT_COUNT( report_size                            ),\
+      HID_REPORT_COUNT_N( report_size , 1                 ),\
       HID_INPUT       ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ),\
       /* Output */ \
       HID_USAGE       ( 0x03                                    ),\
       HID_LOGICAL_MIN ( 0x00                                    ),\
       HID_LOGICAL_MAX ( 0xff                                    ),\
       HID_REPORT_SIZE ( 8                                       ),\
-      HID_REPORT_COUNT( report_size                             ),\
+      HID_REPORT_COUNT_N( report_size  ,  1                ),\
       HID_OUTPUT      ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE  ),\
     HID_COLLECTION_END \
 
