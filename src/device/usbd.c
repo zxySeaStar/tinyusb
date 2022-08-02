@@ -445,6 +445,7 @@ bool tud_task_event_ready(void)
     }
     @endcode
  */
+
 void tud_task (void)
 {
   // Skip if stack is not initialized
@@ -514,21 +515,17 @@ void tud_task (void)
 
         _usbd_dev.ep_status[epnum][ep_dir].busy = false;
         _usbd_dev.ep_status[epnum][ep_dir].claimed = 0;
-
-        
         if ( 0 == epnum )
         {
           usbd_control_xfer_cb(event.rhport, ep_addr, (xfer_result_t)event.xfer_complete.result, event.xfer_complete.len);
         }
         else
         {
-          //printf("<B\n");
           usbd_class_driver_t const * driver = get_driver( _usbd_dev.ep2drv[epnum][ep_dir] );
           TU_ASSERT(driver, );
-          
+
           TU_LOG2("  %s xfer callback\r\n", driver->name);
-          driver->xfer_cb(event.rhport, ep_addr, (xfer_result_t)event.xfer_complete.result, event.xfer_complete.len);      
-          //printf("B>\n\n");
+          driver->xfer_cb(event.rhport, ep_addr, (xfer_result_t)event.xfer_complete.result, event.xfer_complete.len);
         }
         
       }
@@ -1040,6 +1037,14 @@ void dcd_event_handler(dcd_event_t const * event, bool in_isr)
       }
     break;
 
+    case DCD_EVENT_XFER_COMPLETE:
+      // set in channel unbusy
+      if ( _usbd_dev.connected )
+      {
+        _usbd_dev.ep_status[tu_edpt_number(event->xfer_complete.ep_addr)][tu_edpt_dir(event->xfer_complete.ep_addr)].busy = false;
+        osal_queue_send(_usbd_q, event, in_isr);
+      }
+      break;
     default:
       osal_queue_send(_usbd_q, event, in_isr);
     break;
